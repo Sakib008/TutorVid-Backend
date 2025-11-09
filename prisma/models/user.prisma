@@ -1,0 +1,16 @@
+
+model User {
+    id    String    @id @default(uuid())
+    name  String
+    email String    @unique
+    username String   @unique
+    userType UserType @default(STUDENT)
+    password String 
+    sessions Session[]
+    createdAt DateTime @default(now())
+}
+
+enum UserType {
+    ADMIN
+    STUDENT
+}
