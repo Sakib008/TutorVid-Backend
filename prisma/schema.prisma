@@ -35,6 +35,7 @@ model Video {
   title       String
   description String?
   url         String
+  publicId    String?
   duration    Int?
   sessionId   String
   session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
