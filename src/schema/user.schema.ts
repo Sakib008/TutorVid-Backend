@@ -1,8 +1,16 @@
 import { z } from "zod";
-import { SessionSchema } from "./session.schema.js";
 
-const userTypes = ["ADMIN", "STUDENT"] as const;
-export type UserType = (typeof userTypes)[number];
+export const registerSchema = z.object({
+  email: z.email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  role: z.enum(["ADMIN", "STUDENT"]).default("STUDENT"),
+});
+
+export const loginSchema = z.object({
+  email: z.email("Invalid email address"),
+  password: z.string().min(1, "Password is required"),
+});
 
 export const UserSchema = z.object({
   id: z.uuid(),
@@ -15,10 +23,12 @@ export const UserSchema = z.object({
       /^[a-zA-Z0-9]{3,20}$/,
       "Username must not contain Special character."
     ),
-  userType: z.enum(userTypes),
+  userType: z.enum(["ADMIN", "STUDENT"]).default("STUDENT"),
   password: z.string().min(8, "Password must be at least 8 characters"),
-  sessions: z.array(SessionSchema),
+  sessions: z.array(z.object({})).optional(),
   createdAt: z.date().safeParse(new Date()),
 });
 
+export type RegisterInput = z.infer<typeof registerSchema>;
+export type LoginInput = z.infer<typeof loginSchema>;
 export type User = z.infer<typeof UserSchema>;
