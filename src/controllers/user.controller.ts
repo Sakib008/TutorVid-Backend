@@ -1,49 +1,117 @@
-import { UserSchema, type User } from "../schema/user.schema.js";
-import { prisma } from "../lib/client.prisma.js";
-import { apiResponse } from "../utils/apiResponse.js";
-import { apiError } from "../utils/apiError.js";
+import { type NextFunction, type Response, type Request } from 'express';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import { prisma } from '../lib/client.prisma.js';
+import { registerSchema, loginSchema } from '../schema/user.schema.js';
+import { ApiError } from '../utils/apiError.js';
+import { ApiResponse } from '../utils/apiResponse.js';
 
-export const getUsers = async () => {
-  const users = await prisma.user.findMany();
-  return users;
-};
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET is not defined in environment variables');
+}
 
-export const getUser = async (id: string) => {
+export const register = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const user = await prisma.user.findUnique({
-      where: {
-        id,
+    const validatedData = registerSchema.parse(req.body);
+
+    const existingUser = await prisma.user.findUnique({
+      where: { email: validatedData.email },
+    });
+
+    if (existingUser) {
+      throw new ApiError(400, 'User already exists with this email');
+    }
+
+    const hashedPassword = await bcrypt.hash(validatedData.password, 10);
+
+    const user = await prisma.user.create({
+      data: {
+        email: validatedData.email,
+        password: hashedPassword,
+        name: validatedData.name,
+        role: validatedData.role,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true,
       },
     });
-    return apiResponse(user, 200);
-  } catch (error : any) {
-    return apiError(error.message || error || "Something went wrong", 404);
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.status(201).json(new ApiResponse(201, { user, token }, 'Registration successful'));
+  } catch (error: any) {
+    console.log("Error: ", error.issues);
+    next(error.issues ? new ApiError(400, error.issues[0].message) : error);
   }
 };
 
-export const createUser = async (user: User) => {
-  const newUser = await prisma.user.create({
-    data: user,
-  });
-  return apiResponse(newUser, 201);
+export const login = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const validatedData = loginSchema.parse(req.body);
+
+    const user = await prisma.user.findUnique({
+      where: { email: validatedData.email },
+    });
+
+    if (!user) {
+      throw new ApiError(401, 'Invalid credentials');
+    }
+
+    const isPasswordValid = await bcrypt.compare(validatedData.password, user.password);
+
+    if (!isPasswordValid) {
+      throw new ApiError(401, 'Invalid credentials');
+    }
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    const userWithoutPassword = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      createdAt: user.createdAt,
+    };
+
+    res.status(200).json(new ApiResponse(200, { user: userWithoutPassword, token }, 'Login successful'));
+  } catch (error: any) {
+    next(error.issues ? new ApiError(400, error.issues[0].message) : error);
+  }
 };
 
-export const updateUser = async (id: string, user: User) => {
-  const updatedUser = await prisma.user.update({
-    where: {
-      id,
-    },
-    data: user,
-  });
-  return apiResponse(updatedUser, 200);
-};
+export const getProfile = async (req: any, res: Response, next: NextFunction) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        createdAt: true,
+      },
+    });
 
-export const deleteUser = async (id: string) => {
-  const deletedUser = await prisma.user.delete({
-    where: {
-      id,
-    },
-  });
-  return apiResponse(deletedUser, 200);
+    if (!user) {
+      throw new ApiError(404, 'User not found');
+    }
+
+    res.status(200).json(new ApiResponse(200, user));
+  } catch (error) {
+    next(error);
+  }
 };
 
