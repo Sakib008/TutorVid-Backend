@@ -3,7 +3,8 @@ import { z } from "zod";
 export const createVideoSchema = z.object({
   title: z.string().min(3, "Title is required"),
   description: z.string().optional(),
-  url: z.url("Invalid URL"),
+  // URL is generated after Cloudinary upload, so it's not sent from frontend
+  url: z.url("Invalid URL").optional(),
   publicId: z.string().optional(),
   duration: z.number().int().positive().optional(),
   sessionId: z.uuid("Invalid session ID"),

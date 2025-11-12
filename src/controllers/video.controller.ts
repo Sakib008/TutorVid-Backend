@@ -10,7 +10,6 @@ import { ApiResponse } from "../utils/apiResponse.js";
 import cloudinary, { uploadOnCloudinary } from "../utils/cloudinary.config.js";
 import { type AuthRequest } from "../middleware/auth.middleware.js";
 
-
 export const createVideo = async (
   req: AuthRequest,
   res: Response,
@@ -26,12 +25,12 @@ export const createVideo = async (
     if (!session) {
       throw new ApiError(404, "Session not found");
     }
-      const videoFile = req.file as Express.Multer.File;
-      const filePath = videoFile.path;
-    if (!videoFile && !filePath) {
-       new ApiError(400, "Video file is required");
+    const videoFile = req.file as Express.Multer.File;
+    const filePath = videoFile.path;
+    if (!videoFile || !filePath) {
+      throw new ApiError(400, "Video file is required");
     }
-    const result = await uploadOnCloudinary(filePath); 
+    const result = await uploadOnCloudinary(filePath);
     const videoUrl = (result.secure_url ?? result.url) as string;
     const public_id = result.public_id as string;
 
@@ -69,7 +68,6 @@ export const getVideos = async (
 ) => {
   try {
     const rawSessionId = req.query.sessionId;
-    console.log("Request getVideos query:", req);
     const sessionId =
       typeof rawSessionId === "string"
         ? rawSessionId

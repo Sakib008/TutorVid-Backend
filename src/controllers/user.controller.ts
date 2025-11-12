@@ -49,7 +49,6 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
 
     res.status(201).json(new ApiResponse(201, { user, token }, 'Registration successful'));
   } catch (error: any) {
-    console.log("Error: ", error.issues);
     next(error.issues ? new ApiError(400, error.issues[0].message) : error);
   }
 };

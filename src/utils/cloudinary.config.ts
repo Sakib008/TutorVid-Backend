@@ -25,7 +25,6 @@ const uploadOnCloudinary = async (
   try {
     if (!filePath) throw new Error("File path is required");
     const stats = fs.statSync(filePath);
-    console.log("File cloudinary upload stats:", stats);
     if (stats.size > MAX_FILE_SIZE) {
       throw new Error("File size exceeds 20MB limit");
     }
@@ -37,8 +36,6 @@ const uploadOnCloudinary = async (
       max_file_size: MAX_FILE_SIZE,
     });
 
-    console.log("Uploading file:", filePath);
-    console.log("Upload successful:", result);
     fs.unlinkSync(filePath);
 
     return result;
@@ -46,7 +43,6 @@ const uploadOnCloudinary = async (
     if (filePath && fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
-
     throw new Error(`Failed to upload file: ${error.message}`);
   }
 };

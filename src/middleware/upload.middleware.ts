@@ -7,7 +7,6 @@ const upload = multer({
     },
     filename: (req, file, cb) => {
       cb(null, Date.now() + "-" + file.originalname);
-      console.log("File Read Filename: ", file);
     },
   }),
   limits: {
